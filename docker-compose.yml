@@ -170,6 +170,7 @@ services:
       DB_SERVICE_URL: http://db-service:4001
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AI_MODE: ${AI_MODE:-mock}
     depends_on:
       db-service:
         condition: service_healthy

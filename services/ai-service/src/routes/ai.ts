@@ -25,7 +25,7 @@ async function dbRequest(path: string, options: RequestInit = {}): Promise<any> 
 const promptSchema = z.object({
   userId: z.string().uuid(),
   prompt: z.string().min(1).max(10000),
-  model: z.string().optional().default('gemini-pro'),
+  model: z.string().optional().default('gemini-1.5-flash'),
 });
 
 // ── AI Providers ────────────────────────────────────────────────
@@ -69,7 +69,12 @@ router.post('/prompt', async (req: Request, res: Response, next: NextFunction) =
     let result: { content: string; tokensUsed: number };
 
     if (AI_MODE === 'gemini' && GEMINI_API_KEY) {
-      result = await geminiResponse(body.prompt, body.model);
+      try {
+        result = await geminiResponse(body.prompt, body.model);
+      } catch (geminiErr: any) {
+        console.error('Gemini failed, falling back to mock:', geminiErr.message);
+        result = await mockResponse(body.prompt);
+      }
     } else {
       result = await mockResponse(body.prompt);
     }
@@ -122,8 +127,9 @@ router.get('/models', (_req: Request, res: Response) => {
   res.json({
     mode: AI_MODE,
     models: [
-      { id: 'gemini-pro', name: 'Gemini Pro', available: AI_MODE === 'gemini' },
-      { id: 'gemini-pro-vision', name: 'Gemini Pro Vision', available: AI_MODE === 'gemini' },
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', available: AI_MODE === 'gemini' },
+      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', available: AI_MODE === 'gemini' },
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', available: AI_MODE === 'gemini' },
       { id: 'mock', name: 'Mock (Development)', available: true },
     ],
   });
