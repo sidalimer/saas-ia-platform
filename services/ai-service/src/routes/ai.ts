@@ -25,7 +25,7 @@ async function dbRequest(path: string, options: RequestInit = {}): Promise<any> 
 const promptSchema = z.object({
   userId: z.string().uuid(),
   prompt: z.string().min(1).max(10000),
-  model: z.string().optional().default('gemini-1.5-flash'),
+  model: z.string().optional().default('gemini-2.0-flash'),
 });
 
 // ── AI Providers ────────────────────────────────────────────────
@@ -127,9 +127,9 @@ router.get('/models', (_req: Request, res: Response) => {
   res.json({
     mode: AI_MODE,
     models: [
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', available: AI_MODE === 'gemini' },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', available: AI_MODE === 'gemini' },
       { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', available: AI_MODE === 'gemini' },
+      { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite', available: AI_MODE === 'gemini' },
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', available: AI_MODE === 'gemini' },
       { id: 'mock', name: 'Mock (Development)', available: true },
     ],
   });
