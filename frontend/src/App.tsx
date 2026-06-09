@@ -30,7 +30,14 @@ function useAuth() {
     setUser(null);
   }
   function updateUser(u: any) { setUser(u); }
-  return { user, token, login, logout, updateUser, isAuth: !!token };
+  async function refreshUser() {
+    if (!token) return;
+    try {
+      const r = await fetch(`${API_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) { const data = await r.json(); setUser(data); }
+    } catch {}
+  }
+  return { user, token, login, logout, updateUser, refreshUser, isAuth: !!token };
 }
 
 // ── Pages ─────────────────────────────────────────────────────
@@ -245,6 +252,8 @@ function DashboardPage({ user, token }: { user: any; token: string }) {
   );
 }
 
+const QUOTA_SENTINEL = '__QUOTA_EXCEEDED__';
+
 function ChatPage({ user, token }: { user: any; token: string }) {
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [input, setInput] = useState('');
@@ -265,9 +274,18 @@ function ChatPage({ user, token }: { user: any; token: string }) {
         body: JSON.stringify({ userId: user.id, prompt: userMsg }),
       });
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.response || data.error || 'Error' }]);
+      if (!res.ok) {
+        const errLower = (data.error || '').toLowerCase();
+        if (res.status === 402 || res.status === 403 || errLower.includes('quota') || errLower.includes('limit') || errLower.includes('subscription')) {
+          setMessages((prev) => [...prev, { role: 'assistant', content: QUOTA_SENTINEL }]);
+        } else {
+          setMessages((prev) => [...prev, { role: 'assistant', content: data.error || 'Error' }]);
+        }
+      } else {
+        setMessages((prev) => [...prev, { role: 'assistant', content: data.response || 'No response' }]);
+      }
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Connection error' }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: 'Connection error. Please try again.' }]);
     }
     setLoading(false);
   }
@@ -279,9 +297,17 @@ function ChatPage({ user, token }: { user: any; token: string }) {
         {messages.length === 0 && <p className="text-gray-400 text-center mt-20">Send a message to start...</p>}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[70%] rounded-xl px-4 py-2 ${m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
-              <p className="whitespace-pre-wrap text-sm">{m.content}</p>
-            </div>
+            {m.content === QUOTA_SENTINEL ? (
+              <div className="max-w-[80%] rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm">
+                <p className="font-semibold text-amber-700 mb-1">🚀 You've reached your AI request limit</p>
+                <p className="text-gray-600 mb-3">Upgrade your plan to get more AI requests and unlock premium features.</p>
+                <Link to="/plans" className="inline-block rounded-lg bg-indigo-600 px-4 py-2 text-white text-sm font-medium hover:bg-indigo-700">View Plans &amp; Subscribe</Link>
+              </div>
+            ) : (
+              <div className={`max-w-[70%] rounded-xl px-4 py-2 ${m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
+                <p className="whitespace-pre-wrap text-sm">{m.content}</p>
+              </div>
+            )}
           </div>
         ))}
         {loading && <div className="flex justify-start"><div className="bg-gray-100 rounded-xl px-4 py-2 text-sm text-gray-500 animate-pulse">Thinking...</div></div>}
@@ -352,8 +378,9 @@ function SettingsPage({ user, token, onUpdate }: { user: any; token: string; onU
       body: JSON.stringify(profile),
     });
     if (res.ok) {
-      const updated = await res.json();
-      onUpdate(updated);
+      // Re-fetch fresh user from auth/me so all fields (emailVerified, role…) stay accurate
+      const meRes = await fetch(`${API_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+      if (meRes.ok) { const fresh = await meRes.json(); onUpdate(fresh); }
       setProfileMsg('Profile updated!');
     } else {
       setProfileMsg('Update failed');
@@ -574,30 +601,38 @@ function ResetPasswordPage() {
 }
 
 // ── VerifyEmailPage ────────────────────────────────────────────
-function VerifyEmailPage() {
+function VerifyEmailPage({ onRefreshUser }: { onRefreshUser?: () => void }) {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [msg, setMsg] = useState('');
-  const token = new URLSearchParams(window.location.search).get('token') || '';
+  const verifyToken = new URLSearchParams(window.location.search).get('token') || '';
+  const nav = useNavigate();
 
   useEffect(() => {
-    if (!token) { setStatus('error'); setMsg('No token provided.'); return; }
-    fetch(`${API_URL}/auth/verify-email?token=${token}`)
+    if (!verifyToken) { setStatus('error'); setMsg('No token provided.'); return; }
+    fetch(`${API_URL}/auth/verify-email?token=${verifyToken}`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.message) { setStatus('success'); setMsg(data.message); }
-        else { setStatus('error'); setMsg(data.error || 'Verification failed'); }
+        if (data.message) {
+          setStatus('success');
+          setMsg(data.message);
+          if (onRefreshUser) onRefreshUser();
+        } else {
+          setStatus('error');
+          setMsg(data.error || 'Verification failed');
+        }
       })
       .catch(() => { setStatus('error'); setMsg('Verification failed'); });
-  }, [token]);
+  }, [verifyToken]);
 
   return (
     <div className="mx-auto max-w-md mt-20 px-4 text-center">
-      {status === 'loading' && <p className="text-gray-500">Verifying...</p>}
+      {status === 'loading' && <p className="text-gray-500 animate-pulse">Verifying your email...</p>}
       {status === 'success' && (
         <div className="bg-green-50 text-green-700 p-6 rounded-xl">
-          <p className="text-2xl mb-2">✓</p>
-          <p className="font-semibold">{msg}</p>
-          <Link to="/login" className="mt-4 inline-block text-indigo-600 hover:underline text-sm">Go to Sign In</Link>
+          <p className="text-3xl mb-2">✓</p>
+          <p className="font-semibold text-lg">{msg}</p>
+          <p className="text-sm text-gray-500 mt-2">Your email is now verified. Go to Settings to see the updated status.</p>
+          <button onClick={() => nav('/settings')} className="mt-4 inline-block rounded-lg bg-indigo-600 px-4 py-2 text-white text-sm font-medium hover:bg-indigo-700">Go to Settings</button>
         </div>
       )}
       {status === 'error' && (
@@ -682,7 +717,7 @@ function App() {
           <Route path="/settings" element={auth.isAuth ? <SettingsPage user={auth.user} token={auth.token!} onUpdate={auth.updateUser} /> : <Navigate to="/login" />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage onRefreshUser={auth.refreshUser} />} />
           <Route path="/oauth/callback" element={<OAuthCallbackPage onLogin={auth.login} />} />
         </Routes>
 
