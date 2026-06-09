@@ -63,6 +63,32 @@ router.get('/email/:email', async (req, res, next) => {
   }
 });
 
+// GET /users/verify-token/:token
+router.get('/verify-token/:token', async (req, res, next) => {
+  try {
+    const user = await prisma.user.findFirst({
+      where: { emailVerificationToken: req.params.token },
+    });
+    if (!user) { res.status(404).json({ error: 'Invalid token' }); return; }
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /users/reset-token/:token
+router.get('/reset-token/:token', async (req, res, next) => {
+  try {
+    const user = await prisma.user.findFirst({
+      where: { passwordResetToken: req.params.token },
+    });
+    if (!user) { res.status(404).json({ error: 'Invalid token' }); return; }
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /users
 router.post('/', async (req, res, next) => {
   try {

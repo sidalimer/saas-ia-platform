@@ -5,9 +5,23 @@ import crypto from 'crypto';
 const router = Router();
 
 const DB_SERVICE_URL = process.env.DB_SERVICE_URL || 'http://db-service:4001';
+const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:4003';
 const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'dev-internal-key-change-me';
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 const PAYMENT_MODE = process.env.PAYMENT_MODE || 'mock'; // 'mock' | 'stripe'
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+async function notifyRequest(path: string, body: object): Promise<void> {
+  try {
+    await fetch(`${NOTIFICATION_SERVICE_URL}/notifications${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-internal-key': INTERNAL_API_KEY },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    // Non-blocking
+  }
+}
 
 async function dbRequest(path: string, options: RequestInit = {}): Promise<any> {
   const res = await fetch(`${DB_SERVICE_URL}/api${path}`, {
@@ -86,6 +100,27 @@ router.post('/create-checkout', async (req: Request, res: Response, next: NextFu
       }),
     });
 
+    // Fetch user info for notification
+    const user = await dbRequest(`/users/${body.userId}`).catch(() => null);
+    if (user) {
+      const amountEur = (amount / 100).toFixed(2);
+      const renewalDate = new Date(Date.now() + (body.interval === 'MONTHLY' ? 30 : 365) * 86400000).toLocaleDateString('fr-FR');
+      // Invoice email
+      notifyRequest('/send-template', {
+        userId: body.userId,
+        to: user.email,
+        template: 'payment-receipt',
+        data: { name: user.firstName || user.email, plan: plan.name, amount: amountEur, interval: body.interval === 'MONTHLY' ? 'Mensuel' : 'Annuel' },
+      });
+      // Subscription start email
+      notifyRequest('/send-template', {
+        userId: body.userId,
+        to: user.email,
+        template: 'subscription-start',
+        data: { name: user.firstName || user.email, plan: plan.name, renewalDate },
+      });
+    }
+
     res.json({
       success: true,
       paymentId,
@@ -120,6 +155,22 @@ router.post('/webhook', async (req: Request, res: Response, next: NextFunction) 
           providerPaymentId: body.data.stripePaymentId || crypto.randomUUID(),
         }),
       });
+    } else if (body.type === 'payment.failed') {
+      const user = await dbRequest(`/users/${body.data.userId}`).catch(() => null);
+      if (user) {
+        const plan = await dbRequest(`/plans/${body.data.planId}`).catch(() => null);
+        notifyRequest('/send-template', {
+          userId: body.data.userId,
+          to: user.email,
+          template: 'payment-failed',
+          data: {
+            name: user.firstName || user.email,
+            plan: plan?.name || 'SaaS IA',
+            amount: ((body.data.amount || 0) / 100).toFixed(2),
+            link: `${FRONTEND_URL}/plans`,
+          },
+        });
+      }
     }
 
     res.json({ received: true });
