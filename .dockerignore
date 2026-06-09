@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.env
+*.log
+coverage
+.nyc_output
+*.tsbuildinfo
+frontend/node_modules
+frontend/dist

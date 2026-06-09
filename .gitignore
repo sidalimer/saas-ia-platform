@@ -1,0 +1,27 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+coverage/
+.nyc_output/
+*.tsbuildinfo
+.turbo/
+.cache/
+tmp/
+temp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.local.yml
+
+# Prisma
+services/db-service/prisma/*.db
+
+# Frontend
+frontend/dist/

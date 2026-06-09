@@ -1,0 +1,293 @@
+openapi: 3.0.3
+info:
+  title: SaaS IA Platform API
+  description: AI-powered SaaS platform with microservices architecture
+  version: 1.0.0
+  contact:
+    name: SaaS IA Team
+
+servers:
+  - url: http://localhost:8081/api
+    description: Local gateway (development)
+
+tags:
+  - name: Auth
+    description: Authentication & authorization
+  - name: AI
+    description: AI prompt & history
+  - name: Plans
+    description: Subscription plans
+  - name: Payments
+    description: Payment processing
+  - name: Notifications
+    description: Email notifications
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                firstName: { type: string }
+                lastName: { type: string }
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400': { description: Validation error }
+        '409': { description: Email already registered }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                totpCode: { type: string, description: "Required if 2FA enabled" }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401': { description: Invalid credentials }
+        '403': { description: TOTP code required }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200':
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+        '401': { description: Invalid or expired refresh token }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout and invalidate refresh token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200': { description: Logged out }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401': { description: Unauthorized }
+
+  /ai/prompt:
+    post:
+      tags: [AI]
+      summary: Send a prompt to the AI
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, prompt]
+              properties:
+                userId: { type: string, format: uuid }
+                prompt: { type: string, maxLength: 10000 }
+                model: { type: string, default: gemini-pro }
+      responses:
+        '200':
+          description: AI response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response: { type: string }
+                  model: { type: string }
+                  tokensUsed: { type: integer }
+                  durationMs: { type: integer }
+
+  /ai/models:
+    get:
+      tags: [AI]
+      summary: List available AI models
+      responses:
+        '200':
+          description: List of models
+
+  /db/plans:
+    get:
+      tags: [Plans]
+      summary: List all available plans
+      responses:
+        '200':
+          description: Array of plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plan'
+
+  /payments/create-checkout:
+    post:
+      tags: [Payments]
+      summary: Create a payment checkout
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, planId, interval]
+              properties:
+                userId: { type: string, format: uuid }
+                planId: { type: string, format: uuid }
+                interval: { type: string, enum: [MONTHLY, YEARLY] }
+      responses:
+        '200':
+          description: Payment processed
+
+  /payments/history/{userId}:
+    get:
+      tags: [Payments]
+      summary: Get payment history for a user
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Payment history
+
+  /notify/send:
+    post:
+      tags: [Notifications]
+      summary: Send an email notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, to, subject, body]
+              properties:
+                userId: { type: string, format: uuid }
+                to: { type: string, format: email }
+                subject: { type: string }
+                body: { type: string }
+                html: { type: string }
+      responses:
+        '200': { description: Email sent }
+
+  /notify/send-template:
+    post:
+      tags: [Notifications]
+      summary: Send a template email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, to, template]
+              properties:
+                userId: { type: string, format: uuid }
+                to: { type: string, format: email }
+                template: { type: string, enum: [welcome, password-reset, email-verification, payment-receipt] }
+                data: { type: object }
+      responses:
+        '200': { description: Template email sent }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        firstName: { type: string }
+        lastName: { type: string }
+        role: { type: string, enum: [USER, ADMIN] }
+        emailVerified: { type: boolean }
+        totpEnabled: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        accessToken: { type: string }
+        refreshToken: { type: string }
+
+    Plan:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        monthlyPrice: { type: integer, description: "Price in cents" }
+        yearlyPrice: { type: integer, description: "Price in cents" }
+        aiRequestsLimit: { type: integer }
+        features: { type: string, description: "JSON array of feature strings" }
+        active: { type: boolean }

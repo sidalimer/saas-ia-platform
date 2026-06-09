@@ -1,0 +1,33 @@
+ARG SERVICE_PATH
+FROM node:20-alpine
+RUN apk add --no-cache openssl
+WORKDIR /app
+
+COPY package.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY services/db-service/package.json ./services/db-service/
+COPY services/auth-service/package.json ./services/auth-service/
+COPY services/notification-service/package.json ./services/notification-service/
+COPY services/ai-service/package.json ./services/ai-service/
+COPY services/payment-service/package.json ./services/payment-service/
+COPY services/metrics-service/package.json ./services/metrics-service/
+COPY gateway/package.json ./gateway/
+COPY frontend/package.json ./frontend/
+
+RUN npm install --ignore-scripts
+
+COPY tsconfig.base.json ./
+COPY packages/shared/ ./packages/shared/
+RUN npm run build --workspace=@saas-ia/shared
+
+ARG SERVICE_PATH
+COPY ${SERVICE_PATH}/ ./${SERVICE_PATH}/
+ARG SERVICE_WORKSPACE
+RUN npm run build --workspace=${SERVICE_WORKSPACE}
+
+ARG SERVICE_PORT
+EXPOSE ${SERVICE_PORT}
+
+ARG SERVICE_PATH
+ENV ENTRY_POINT=${SERVICE_PATH}/dist/index.js
+CMD ["sh", "-c", "node $ENTRY_POINT"]
