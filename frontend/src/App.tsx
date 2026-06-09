@@ -490,35 +490,75 @@ function SettingsPage({ user, token, onUpdate }: { user: any; token: string; onU
   );
 }
 
-// ── ForgotPasswordPage ────────────────────────────────────────
+// ── ForgotPasswordPage (multi-step: email → code → new password) ──────
 function ForgotPasswordPage() {
+  const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
-  const [msg, setMsg] = useState('');
-  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [channel, setChannel] = useState('');
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+  const nav = useNavigate();
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSendCode(e: FormEvent) {
     e.preventDefault();
+    setError('');
     const res = await fetch(`${API_URL}/auth/forgot-password`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     });
     const data = await res.json();
-    setMsg(data.message || 'Email sent if account exists.');
-    setSent(true);
+    setChannel(data.channel || 'email');
+    setStep('code');
+  }
+
+  async function handleReset(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (password !== confirm) { setError('Passwords do not match'); return; }
+    const res = await fetch(`${API_URL}/auth/reset-password`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setError(data.error || 'Invalid code'); return; }
+    setDone(true);
+    setTimeout(() => nav('/login'), 2000);
   }
 
   return (
     <div className="mx-auto max-w-md mt-20 px-4">
       <h2 className="text-2xl font-bold text-center mb-2">Forgot Password</h2>
-      <p className="text-center text-gray-500 text-sm mb-6">Enter your email and we'll send you a reset link.</p>
-      {sent ? (
-        <div className="bg-green-50 text-green-700 p-4 rounded-lg text-sm text-center">{msg}</div>
+      {done ? (
+        <div className="bg-green-50 text-green-700 p-4 rounded-lg text-center">✓ Password updated! Redirecting...</div>
+      ) : step === 'email' ? (
+        <>
+          <p className="text-center text-gray-500 text-sm mb-6">Enter your email to receive a 6-digit reset code.</p>
+          <form onSubmit={handleSendCode} className="space-y-4">
+            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" required />
+            <button type="submit" className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white font-medium hover:bg-indigo-700">Send Code</button>
+          </form>
+        </>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" required />
-          <button type="submit" className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white font-medium hover:bg-indigo-700">Send Reset Link</button>
-        </form>
+        <>
+          <div className="bg-blue-50 text-blue-700 p-3 rounded-lg text-sm text-center mb-4">
+            {channel === 'sms' ? '📱 Code sent to your phone' : '📧 Code sent to your email'}. Enter it below.
+          </div>
+          {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>}
+          <form onSubmit={handleReset} className="space-y-4">
+            <input type="text" placeholder="6-digit code" value={code} onChange={(e) => setCode(e.target.value)}
+              maxLength={6} className="w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-xl tracking-widest focus:border-indigo-500" required />
+            <input type="password" placeholder="New password (min 8 chars)" value={password} onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500" required minLength={8} />
+            <input type="password" placeholder="Confirm new password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500" required />
+            <button type="submit" className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white font-medium hover:bg-indigo-700">Reset Password</button>
+            <button type="button" onClick={() => setStep('email')} className="w-full text-sm text-gray-500 hover:text-indigo-600">Resend code</button>
+          </form>
+        </>
       )}
       <p className="mt-4 text-center text-sm text-gray-500"><Link to="/login" className="text-indigo-600 hover:underline">Back to Sign In</Link></p>
     </div>
@@ -526,46 +566,11 @@ function ForgotPasswordPage() {
 }
 
 // ── ResetPasswordPage ──────────────────────────────────────────
+// Redirect to the unified forgot-password flow
 function ResetPasswordPage() {
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [msg, setMsg] = useState('');
-  const [error, setError] = useState('');
-  const [done, setDone] = useState(false);
   const nav = useNavigate();
-  const token = new URLSearchParams(window.location.search).get('token') || '';
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (password !== confirm) { setError('Passwords do not match'); return; }
-    const res = await fetch(`${API_URL}/auth/reset-password`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) { setError(data.error || 'Reset failed'); return; }
-    setMsg('Password updated successfully!');
-    setDone(true);
-    setTimeout(() => nav('/login'), 2000);
-  }
-
-  return (
-    <div className="mx-auto max-w-md mt-20 px-4">
-      <h2 className="text-2xl font-bold text-center mb-6">Reset Password</h2>
-      {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>}
-      {done ? (
-        <div className="bg-green-50 text-green-700 p-4 rounded-lg text-sm text-center">{msg} Redirecting...</div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="password" placeholder="New password (min 8 chars)" value={password} onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500" required minLength={8} />
-          <input type="password" placeholder="Confirm new password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500" required />
-          <button type="submit" className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white font-medium hover:bg-indigo-700">Set New Password</button>
-        </form>
-      )}
-    </div>
-  );
+  useEffect(() => { nav('/forgot-password', { replace: true }); }, []);
+  return <div className="mx-auto max-w-md mt-20 px-4 text-center text-gray-500">Redirecting...</div>;
 }
 
 // ── VerifyEmailPage ────────────────────────────────────────────

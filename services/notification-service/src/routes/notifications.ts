@@ -47,7 +47,7 @@ const sendEmailSchema = z.object({
 const templateEmailSchema = z.object({
   userId: z.string().uuid(),
   to: z.string().email(),
-  template: z.enum(['welcome', 'password-reset', 'email-verification', 'payment-receipt', 'subscription-start', 'subscription-end', 'subscription-cancel', 'payment-failed']),
+  template: z.enum(['welcome', 'password-reset', 'password-reset-code', 'email-verification', 'payment-receipt', 'subscription-start', 'subscription-end', 'subscription-cancel', 'payment-failed']),
   data: z.record(z.string()).optional(),
 });
 
@@ -76,6 +76,10 @@ function renderTemplate(template: string, data: Record<string, string> = {}): { 
     'password-reset': {
       subject: 'Reset your password — SaaS IA',
       html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#4f46e5">Password Reset</h1><p>Hello ${data.name || ''},</p><p>Click the button below to reset your password. This link expires in <strong>1 hour</strong>.</p><a href="${data.link || '#'}" style="background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none">Reset Password</a><p style="color:#888;font-size:12px;margin-top:24px">If you didn't request this, please ignore this email.</p></div>`,
+    },
+    'password-reset-code': {
+      subject: 'Your password reset code — SaaS IA',
+      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#4f46e5">Password Reset Code</h1><p>Hello ${data.name || ''},</p><p>Use the code below to reset your password. It expires in <strong>1 hour</strong>.</p><div style="background:#f3f4f6;border-radius:12px;padding:24px;text-align:center;margin:24px 0"><span style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#4f46e5">${data.code || '------'}</span></div><p style="color:#888;font-size:12px">If you didn't request this, please ignore this email.</p></div>`,
     },
     'email-verification': {
       subject: 'Verify your email — SaaS IA',

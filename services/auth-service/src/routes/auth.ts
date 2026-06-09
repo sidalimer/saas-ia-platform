@@ -461,40 +461,50 @@ router.post('/forgot-password', async (req: Request, res: Response, next: NextFu
     try {
       user = await dbRequest(`/users/email/${encodeURIComponent(email)}`);
     } catch {
-      // Don't reveal if email exists
-      res.json({ message: 'If this email exists, a reset link has been sent.' });
+      res.json({ message: 'If this account exists, a reset code has been sent.', channel: 'unknown' });
       return;
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    // Generate 6-digit numeric code
+    const resetCode = String(Math.floor(100000 + Math.random() * 900000));
     const resetExpiry = new Date(Date.now() + 3600 * 1000).toISOString();
 
     await dbRequest(`/users/${user.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ passwordResetToken: resetToken, passwordResetExpiry: resetExpiry }),
+      body: JSON.stringify({ passwordResetToken: resetCode, passwordResetExpiry: resetExpiry }),
     });
 
-    const resetLink = `${FRONTEND_URL}/reset-password?token=${resetToken}`;
-    notifyRequest('/send-template', {
-      userId: user.id,
-      to: user.email,
-      template: 'password-reset',
-      data: { name: user.firstName || user.email, link: resetLink },
-    });
-
-    res.json({ message: 'If this email exists, a reset link has been sent.' });
+    if (user.phoneNumber) {
+      // Primary: send 6-digit code via SMS
+      notifyRequest('/send-sms', {
+        userId: user.id,
+        to: user.phoneNumber,
+        body: `Your SaaS IA reset code: ${resetCode}. Valid 1 hour. Do not share it.`,
+      });
+      res.json({ message: 'A 6-digit code has been sent to your phone.', channel: 'sms' });
+    } else {
+      // Fallback: send code by email
+      notifyRequest('/send-template', {
+        userId: user.id,
+        to: user.email,
+        template: 'password-reset-code',
+        data: { name: user.firstName || user.email, code: resetCode },
+      });
+      res.json({ message: 'A 6-digit code has been sent to your email.', channel: 'email' });
+    }
   } catch (err) {
     next(err);
   }
 });
 
 // ── POST /auth/reset-password ────────────────────────────────────
+// Accepts: { email, code, password }
 
 router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { token, password } = req.body;
-    if (!token || !password) {
-      res.status(400).json({ error: 'Token and password required' });
+    const { email, code, password } = req.body;
+    if (!email || !code || !password) {
+      res.status(400).json({ error: 'Email, code and new password are required' });
       return;
     }
     if (password.length < 8) {
@@ -504,14 +514,19 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
 
     let user: any;
     try {
-      user = await dbRequest(`/users/reset-token/${token}`);
+      user = await dbRequest(`/users/email/${encodeURIComponent(email)}`);
     } catch {
-      res.status(400).json({ error: 'Invalid or expired token' });
+      res.status(400).json({ error: 'Invalid code or email' });
       return;
     }
 
-    if (!user || new Date(user.passwordResetExpiry) < new Date()) {
-      res.status(400).json({ error: 'Token expired' });
+    if (!user.passwordResetToken || user.passwordResetToken !== String(code)) {
+      res.status(400).json({ error: 'Invalid reset code' });
+      return;
+    }
+
+    if (new Date(user.passwordResetExpiry) < new Date()) {
+      res.status(400).json({ error: 'Reset code expired' });
       return;
     }
 
