@@ -84,6 +84,9 @@ function LoginPage({ onLogin }: { onLogin: (t: string, rt: string, u: any) => vo
   const [totpRequired, setTotpRequired] = useState(false);
   const [error, setError] = useState('');
   const nav = useNavigate();
+  const searchParams = new URLSearchParams(window.location.search);
+  const verifiedBanner = searchParams.get('verified') === '1';
+  const oauthError = searchParams.get('error');
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -105,6 +108,8 @@ function LoginPage({ onLogin }: { onLogin: (t: string, rt: string, u: any) => vo
   return (
     <div className="mx-auto max-w-md mt-20 px-4">
       <h2 className="text-2xl font-bold text-center mb-6">Sign In</h2>
+      {verifiedBanner && <div className="bg-green-50 text-green-700 p-3 rounded-lg mb-4 text-sm text-center">✓ Email verified! You can now sign in.</div>}
+      {oauthError && <div className="bg-amber-50 text-amber-700 p-3 rounded-lg mb-4 text-sm text-center">⚠️ OAuth not configured ({oauthError.replace('_not_configured', '').replace('_', ' ')}). Add real credentials in .env to use social login.</div>}
       {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)}
@@ -402,20 +407,27 @@ function SettingsPage({ user, token, onUpdate }: { user: any; token: string; onU
 
   async function verifyTotp(e: FormEvent) {
     e.preventDefault();
-    const res = await fetch(`${API_URL}/auth/totp/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ code: totpCode }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setTotpMsg('2FA enabled!');
-      setQr('');
-      onUpdate({ ...user, totpEnabled: true });
-    } else {
-      setTotpMsg(data.error || 'Verification failed');
+    try {
+      const res = await fetch(`${API_URL}/auth/totp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ code: totpCode }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTotpMsg('2FA enabled! ✓');
+        setQr('');
+        setTotpCode('');
+        // Refetch fresh user from /auth/me instead of partial object update
+        const meRes = await fetch(`${API_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+        if (meRes.ok) { onUpdate(await meRes.json()); }
+      } else {
+        setTotpMsg(data.error || 'Invalid code — try again');
+      }
+    } catch {
+      setTotpMsg('Network error — please try again');
     }
-    setTimeout(() => setTotpMsg(''), 3000);
+    setTimeout(() => setTotpMsg(''), 4000);
   }
 
   async function disableTotp() {
@@ -615,7 +627,10 @@ function VerifyEmailPage({ onRefreshUser }: { onRefreshUser?: () => void }) {
         if (data.message) {
           setStatus('success');
           setMsg(data.message);
+          // Try to refresh in-memory user state if already logged in
           if (onRefreshUser) onRefreshUser();
+          // Navigate to login with verified banner after 2s
+          setTimeout(() => nav('/login?verified=1'), 2000);
         } else {
           setStatus('error');
           setMsg(data.error || 'Verification failed');

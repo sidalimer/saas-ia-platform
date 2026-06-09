@@ -27,6 +27,11 @@ const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || '';
 
 // ── Helpers ─────────────────────────────────────────────────────
 
+function isOAuthConfigured(clientId: string, clientSecret: string): boolean {
+  const bad = (v: string) => !v || v.trim().length < 8 || /^x+$/.test(v.trim()) || v.includes(' ');
+  return !bad(clientId) && !bad(clientSecret);
+}
+
 async function notifyRequest(path: string, body: object): Promise<void> {
   try {
     await fetch(`${NOTIFICATION_SERVICE_URL}/notifications${path}`, {
@@ -481,7 +486,14 @@ router.post('/forgot-password', async (req: Request, res: Response, next: NextFu
         to: user.phoneNumber,
         body: `Your SaaS IA reset code: ${resetCode}. Valid 1 hour. Do not share it.`,
       });
-      res.json({ message: 'A 6-digit code has been sent to your phone.', channel: 'sms' });
+      // Dev fallback: always send copy via email so code is visible in MailHog
+      notifyRequest('/send-template', {
+        userId: user.id,
+        to: user.email,
+        template: 'password-reset-code',
+        data: { name: user.firstName || user.email, code: resetCode },
+      });
+      res.json({ message: 'A 6-digit code has been sent to your phone (and email as backup).', channel: 'sms' });
     } else {
       // Fallback: send code by email
       notifyRequest('/send-template', {
@@ -576,11 +588,11 @@ const OAUTH_PROVIDERS: Record<string, any> = {
 router.get('/oauth/:provider', (req: Request, res: Response) => {
   const provider = OAUTH_PROVIDERS[req.params.provider];
   if (!provider) {
-    res.status(400).json({ error: 'Unknown provider' });
+    res.redirect(`${FRONTEND_URL}/login?error=unknown_provider`);
     return;
   }
-  if (!provider.clientId) {
-    res.status(503).json({ error: `${req.params.provider} OAuth not configured` });
+  if (!isOAuthConfigured(provider.clientId, provider.clientSecret)) {
+    res.redirect(`${FRONTEND_URL}/login?error=${req.params.provider}_not_configured`);
     return;
   }
 
