@@ -280,11 +280,18 @@ function ChatPage({ user, token }: { user: any; token: string }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        const errLower = (data.error || '').toLowerCase();
-        if (res.status === 402 || res.status === 403 || errLower.includes('quota') || errLower.includes('limit') || errLower.includes('subscription')) {
+        const errStr = data.error || '';
+        const errLower = errStr.toLowerCase();
+        
+        // If it's specifically a minute limit, just show the text
+        if (errLower.includes('minute limit')) {
+          setMessages((prev) => [...prev, { role: 'assistant', content: errStr }]);
+        }
+        // If it's a daily limit or plan limit, show the upgrade box
+        else if (res.status === 402 || res.status === 403 || errLower.includes('quota') || errLower.includes('limit') || errLower.includes('subscription')) {
           setMessages((prev) => [...prev, { role: 'assistant', content: QUOTA_SENTINEL }]);
         } else {
-          setMessages((prev) => [...prev, { role: 'assistant', content: data.error || 'Error' }]);
+          setMessages((prev) => [...prev, { role: 'assistant', content: errStr || 'Error' }]);
         }
       } else {
         setMessages((prev) => [...prev, { role: 'assistant', content: data.response || 'No response' }]);
@@ -420,11 +427,18 @@ function SettingsPage({ user, token, onUpdate }: { user: any; token: string; onU
         setTotpCode('');
         // Refetch fresh user from /auth/me instead of partial object update
         const meRes = await fetch(`${API_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
-        if (meRes.ok) { onUpdate(await meRes.json()); }
+        if (meRes.ok) {
+          const freshUser = await meRes.json();
+          console.log('Fresh user after 2FA enable:', freshUser);
+          onUpdate(freshUser);
+        } else {
+          console.error('Failed to refetch user after 2FA enable');
+        }
       } else {
         setTotpMsg(data.error || 'Invalid code — try again');
       }
-    } catch {
+    } catch (err) {
+      console.error('2FA verify error:', err);
       setTotpMsg('Network error — please try again');
     }
     setTimeout(() => setTotpMsg(''), 4000);

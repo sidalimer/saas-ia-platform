@@ -596,7 +596,7 @@ router.get('/oauth/:provider', (req: Request, res: Response) => {
     return;
   }
 
-  const callbackUrl = `${req.protocol}://${req.get('host')}/auth/oauth/${req.params.provider}/callback`;
+  const callbackUrl = `http://localhost:8081/api/auth/oauth/${req.params.provider}/callback`;
   const state = crypto.randomBytes(16).toString('hex');
 
   const params = new URLSearchParams({
@@ -627,7 +627,7 @@ router.get('/oauth/:provider/callback', async (req: Request, res: Response, next
       return;
     }
 
-    const callbackUrl = `${req.protocol}://${req.get('host')}/auth/oauth/${providerName}/callback`;
+    const callbackUrl = `http://localhost:8081/api/auth/oauth/${providerName}/callback`;
 
     // Exchange code for access token
     const tokenParams: Record<string, string> = {
@@ -645,7 +645,9 @@ router.get('/oauth/:provider/callback', async (req: Request, res: Response, next
     });
 
     const tokenData: any = await tokenRes.json();
+    console.log('[OAuth Callback] Token exchange response:', JSON.stringify(tokenData));
     if (!tokenData.access_token) {
+      console.error('[OAuth Callback] Token exchange FAILED. redirect_uri used:', callbackUrl);
       res.redirect(`${FRONTEND_URL}/login?error=token_exchange_failed`);
       return;
     }
@@ -655,6 +657,7 @@ router.get('/oauth/:provider/callback', async (req: Request, res: Response, next
       headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: 'application/json' },
     });
     const oauthUser: any = await userRes.json();
+    console.log('[OAuth Callback] User info:', JSON.stringify(oauthUser));
 
     // Normalize user data per provider
     let email = oauthUser.email;
@@ -711,7 +714,9 @@ router.get('/oauth/:provider/callback', async (req: Request, res: Response, next
 
     // Redirect to frontend with tokens
     const params = new URLSearchParams({ accessToken, refreshToken, userId: user.id });
-    res.redirect(`${FRONTEND_URL}/oauth/callback?${params.toString()}`);
+    const finalRedirect = `${FRONTEND_URL}/oauth/callback?${params.toString()}`;
+    console.log('[OAuth Callback] Success, redirecting to frontend:', finalRedirect);
+    res.redirect(finalRedirect);
   } catch (err) {
     next(err);
   }

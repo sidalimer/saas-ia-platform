@@ -9,7 +9,6 @@ describe('AI Service — /ai/prompt', () => {
   });
 
   it('GET /health returns 200', async () => {
-    const { default: app } = await import('../index.js');
     const res = await fetch('http://127.0.0.1:4004/health');
     expect(res).toBeDefined();
   });

@@ -1,4 +1,5 @@
 import client from 'prom-client';
+import type { Request, Response, NextFunction } from 'express';
 
 export function setupMetrics(serviceName: string) {
   const register = new client.Registry();
@@ -21,6 +22,23 @@ export function setupMetrics(serviceName: string) {
   });
 
   return { register, httpRequestDuration, httpRequestTotal };
+}
+
+type MetricsBundle = ReturnType<typeof setupMetrics>;
+
+export function createMetricsMiddleware(metrics: Pick<MetricsBundle, 'httpRequestDuration' | 'httpRequestTotal'>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const start = process.hrtime.bigint();
+    res.on('finish', () => {
+      const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
+      // Use the matched route pattern when available to avoid high-cardinality labels
+      const route = (req.route?.path as string) || req.baseUrl || req.path || 'unknown';
+      const labels = { method: req.method, route, status_code: String(res.statusCode) };
+      metrics.httpRequestDuration.observe(labels, durationSeconds);
+      metrics.httpRequestTotal.inc(labels);
+    });
+    next();
+  };
 }
 
 export { client as promClient };

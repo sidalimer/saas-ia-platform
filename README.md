@@ -1,69 +1,53 @@
-# SaaS IA Platform
+# SaaS IA Platform 👋
 
-A microservices-based SaaS platform that provides AI services to users. Built with Node.js, TypeScript, React, and Docker.
+This is a modern, microservices-based SaaS platform powered by AI (Google Gemini), built with React, Node.js, and Docker.
 
-## Architecture
+## 🚀 Get started
 
-```mermaid
-graph TD
-    Client[Browser] --> GW[Gateway :8080]
-    GW --> AUTH[Auth Service :4002]
-    GW --> AI[AI Service :4004]
-    GW --> PAY[Payment Service :4005]
-    GW --> NOTIF[Notification Service :4003]
-    GW --> MET[Metrics Service :4006]
-    AUTH --> DB[DB Service :4001]
-    AI --> DB
-    PAY --> DB
-    NOTIF --> DB
-    AUTH --> NOTIF
-    PAY --> NOTIF
-    DB --> PG[(PostgreSQL)]
-    AI --> REDIS[(Redis)]
-    NOTIF --> MH[MailHog]
-    MET --> PROM[Prometheus]
-    PROM --> GRAF[Grafana]
+Follow these steps to get the project running on your local machine:
+
+### 1. Prerequisites
+Make sure you have **Docker** and **Docker Compose** installed.
+
+### 2. Configuration
+The project uses environment variables. Check the `.env` file in the root directory and ensure your **GEMINI_API_KEY** is correctly set.
+
+### 3. Launch the platform
+Run the following command in the root folder to build and start all services:
+
+```powershell
+docker compose up -d --build
 ```
 
-## Prerequisites
+### 4. Access the app
+Once all containers are "Healthy", you can access the different parts of the platform:
 
-- **Docker** >= 24.0 & **Docker Compose** >= 2.20
-- **Node.js** >= 20 LTS (for local dev only)
-- Ports: 5173, 8080, 4001-4006, 5432, 6379, 1025, 8025, 9090, 3000
+- **Frontend Interface**: [http://localhost:5173](http://localhost:5173)
+- **API Gateway**: [http://localhost:8081](http://localhost:8081)
+- **MailHog (Email testing)**: [http://localhost:8025](http://localhost:8025)
+- **Grafana (Monitoring)**: [http://localhost:3000](http://localhost:3000)
 
-## Quick Start
+## 🛠 Tech Stack
 
-```bash
-cp .env.example .env
-docker compose up --build
-```
+- **Frontend**: React (Vite), TailwindCSS, Lucide Icons.
+- **Microservices**: Node.js, Express, TypeScript.
+- **Database**: PostgreSQL with Prisma ORM.
+- **Cache**: Redis.
+- **AI**: Google Gemini API.
+- **Monitoring**: Prometheus & Grafana.
+- **Infrastructure**: Docker & Docker Compose.
 
-## URLs
+## ⚠️ Important Information
 
-| Service | URL |
-|---|---|
-| Frontend | http://localhost:5173 |
-| API Gateway | http://localhost:8080 |
-| MailHog (emails) | http://localhost:8025 |
-| Prometheus | http://localhost:9090 |
-| Grafana | http://localhost:3000 (admin/admin) |
+- **API Port**: The Gateway is configured on port **8081** because the standard port 8080 is often used by other system processes.
+- **AI Quota**: If you see a "Quota exceeded" message, wait 60 seconds (minute limit) or check your daily limit on Google AI Studio.
+- **Database**: The PostgreSQL database is automatically initialized and migrated by the `db-service`.
 
-## Configuration
+## 📈 Monitoring
 
-Copy `.env.example` to `.env`. See the file for all available variables and their descriptions.
+You can track the health and metrics of all services via:
+- **Prometheus**: [http://localhost:9090](http://localhost:9090)
+- **Grafana Dashboards**: [http://localhost:3000](http://localhost:3000) (Default login: `admin` / `admin`)
 
-## Makefile Commands
-
-| Command | Description |
-|---|---|
-| `make up` | Build and start all services |
-| `make down` | Stop all services |
-| `make logs` | Follow logs |
-| `make seed` | Seed demo data |
-| `make test` | Run all tests |
-| `make reset-db` | Reset database |
-| `make health` | Check health of all services |
-
-## Project Status
-
-- **Phase 0**: Bootstrap & infrastructure (current)
+---
+Happy coding! 🚀

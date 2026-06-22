@@ -2,7 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import pinoHttp from 'pino-http';
-import { createLogger, setupMetrics, requestIdMiddleware, createErrorHandler } from '@saas-ia/shared';
+import { createLogger, setupMetrics, createMetricsMiddleware, requestIdMiddleware, createErrorHandler } from '@saas-ia/shared';
 import paymentRoutes from './routes/payments.js';
 
 const SERVICE_NAME = 'payment-service';
@@ -13,7 +13,7 @@ const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'dev-internal-key-chang
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 const logger = createLogger(SERVICE_NAME);
-const { register } = setupMetrics(SERVICE_NAME);
+const { register, httpRequestDuration, httpRequestTotal } = setupMetrics(SERVICE_NAME);
 
 // ── Subscription expiry scheduler ───────────────────────────────
 async function checkExpiringSubscriptions(): Promise<void> {
@@ -72,6 +72,7 @@ app.use(cors());
 app.use(express.json());
 app.use(requestIdMiddleware);
 app.use(pinoHttp({ logger }));
+app.use(createMetricsMiddleware({ httpRequestDuration, httpRequestTotal }));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: SERVICE_NAME });

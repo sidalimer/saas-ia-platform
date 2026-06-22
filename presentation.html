@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>SaaS IA Platform - Soutenance</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/black.min.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --r-main-font: 'Inter', sans-serif;
+            --r-heading-font: 'Inter', sans-serif;
+            --r-heading-color: #6366f1;
+            --r-link-color: #818cf8;
+            --r-selection-background-color: #4338ca;
+        }
+        .reveal h1, .reveal h2, .reveal h3 {
+            text-transform: none;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        .reveal .slides section {
+            text-align: left;
+        }
+        .reveal .controls {
+            color: #6366f1;
+        }
+        .reveal .progress {
+            color: #6366f1;
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+        .tech-badge {
+            background: #1e1e1e;
+            color: #818cf8;
+            padding: 0.2rem 0.8rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            border: 1px solid #312e81;
+            display: inline-block;
+            margin: 0.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Slide 1: Hero -->
+            <section data-background-gradient="linear-gradient(to bottom right, #000, #1e1b4b)">
+                <div class="flex flex-col items-center justify-center text-center h-full">
+                    <h1 class="gradient-text text-6xl mb-4">SaaS IA Platform</h1>
+                    <p class="text-2xl text-gray-400 mb-8 italic">L'intelligence artificielle au service de la scalabilité</p>
+                    <div class="h-1 w-24 bg-indigo-500 mb-8 mx-auto"></div>
+                    <p class="text-sm text-gray-500 uppercase tracking-widest">Présentation de Soutenance • 2024</p>
+                </div>
+            </section>
+
+            <!-- Slide 2: Vision & Problématique -->
+            <section>
+                <h2 class="text-indigo-400 mb-6 italic text-sm uppercase tracking-widest">01. La Vision</h2>
+                <h3 class="mb-8">Démocratiser l'IA de manière <span class="text-indigo-400">monétisable</span></h3>
+                
+                <div class="grid grid-cols-2 gap-8 mt-8">
+                    <div class="fragment fade-right card">
+                        <p class="text-indigo-300 font-bold mb-2">Problématique</p>
+                        <p class="text-sm text-gray-300">Comment proposer un service IA accessible, sécurisé et rentable à travers une architecture microservices moderne ?</p>
+                    </div>
+                    <div class="fragment fade-left card border-indigo-500/30">
+                        <p class="text-indigo-300 font-bold mb-2">Solution</p>
+                        <p class="text-sm text-gray-300">Une infrastructure distribuée gérant l'authentification, les abonnements et les quotas d'IA en temps réel.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 3: Architecture Microservices -->
+            <section>
+                <h2 class="text-indigo-400 mb-6 italic text-sm uppercase tracking-widest">02. Architecture</h2>
+                <h3 class="mb-4">Un écosystème <span class="text-indigo-400">Microservices</span></h3>
+                
+                <div class="flex items-center gap-8">
+                    <div class="fragment w-1/2">
+                        <ul class="text-lg space-y-4">
+                            <li>🚀 <b>API Gateway</b> : Port externe <b>8081</b></li>
+                            <li>🔐 <b>Auth Service</b> : JWT & OAuth</li>
+                            <li>🧠 <b>AI Service</b> : Orchestration Gemini</li>
+                            <li>💰 <b>Payment Service</b> : Stripe Mock</li>
+                            <li>📊 <b>Metrics Service</b> : Prometheus</li>
+                        </ul>
+                    </div>
+                    <div class="w-1/2 fragment zoom-in">
+                        <div class="bg-indigo-950/20 p-4 rounded-xl border border-indigo-500/20">
+                            <pre><code class="language-yaml" data-trim>
+                                # Ports Réels
+                                Gateway: 8081
+                                Auth: 4002
+                                AI: 4004
+                                DB: 4001
+                                Metrics: 4006
+                                Grafana: 3000
+                            </code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 4: AI Engine -->
+            <section data-background-color="#0f172a">
+                <h2 class="text-indigo-400 mb-6 italic text-sm uppercase tracking-widest">03. Cœur IA</h2>
+                <h3 class="mb-8">Moteur <span class="text-indigo-400">Gemini 2.0 Flash</span></h3>
+                
+                <div class="card bg-black/40">
+                    <p class="mb-4">Gestion avancée de l'API Google Generative AI :</p>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="fragment p-4 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
+                            <p class="text-indigo-400 font-bold text-sm">Précision Quota</p>
+                            <p class="text-[10px] text-gray-400">Distinction entre limite par minute (60s) et journalière.</p>
+                        </div>
+                        <div class="fragment p-4 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
+                            <p class="text-indigo-400 font-bold text-sm">Fallback Mock</p>
+                            <p class="text-[10px] text-gray-400">Simulation de réponse si quota Google épuisé.</p>
+                        </div>
+                        <div class="fragment p-4 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
+                            <p class="text-indigo-400 font-bold text-sm">Persistance</p>
+                            <p class="text-[10px] text-gray-400">Stockage en base PostgreSQL via le service DB.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 5: Security -->
+            <section>
+                <h2 class="text-indigo-400 mb-6 italic text-sm uppercase tracking-widest">04. Sécurité</h2>
+                <h3 class="mb-8">Protection <span class="text-indigo-400">Multi-Couches</span></h3>
+                
+                <div class="space-y-6">
+                    <div class="fragment flex items-center gap-4 card">
+                        <span class="text-3xl">🔑</span>
+                        <div>
+                            <p class="font-bold">Authentification Forte</p>
+                            <p class="text-sm text-gray-400">Double facteur (2FA TOTP) + OAuth 2.0 (Google, GitHub, Discord)</p>
+                        </div>
+                    </div>
+                    <div class="fragment flex items-center gap-4 card">
+                        <span class="text-3xl">🛡️</span>
+                        <div>
+                            <p class="font-bold">Token-Based Security</p>
+                            <p class="text-sm text-gray-400">Dual Token Strategy (Access 15m / Refresh 7d) via JWT chiffré</p>
+                        </div>
+                    </div>
+                    <div class="fragment flex items-center gap-4 card">
+                        <span class="text-3xl">🇪🇺</span>
+                        <div>
+                            <p class="font-bold">Conformité RGPD</p>
+                            <p class="text-sm text-gray-400">Pseudonymisation des logs, isolation des données, droit à l'oubli</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 6: Business Model -->
+            <section data-background-gradient="linear-gradient(to bottom, #1e1b4b, #000)">
+                <h2 class="text-indigo-400 mb-6 italic text-sm uppercase tracking-widest">05. Business Model</h2>
+                <h3 class="mb-8">Monétisation via <span class="text-indigo-400">Stripe</span></h3>
+                
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="fragment card text-center scale-90 opacity-80">
+                        <h4 class="text-gray-400 mb-2">Starter</h4>
+                        <p class="text-3xl font-bold mb-4">9€<span class="text-sm text-gray-500">/mois</span></p>
+                        <p class="text-xs text-gray-400">100 requêtes IA</p>
+                    </div>
+                    <div class="fragment card text-center border-indigo-500 shadow-2xl shadow-indigo-500/20">
+                        <h4 class="text-indigo-400 mb-2">Pro</h4>
+                        <p class="text-3xl font-bold mb-4">29€<span class="text-sm text-gray-500">/mois</span></p>
+                        <p class="text-xs text-gray-400">1000 requêtes IA</p>
+                        <p class="text-xs text-indigo-400 mt-2 font-bold">Best Value</p>
+                    </div>
+                    <div class="fragment card text-center scale-90 opacity-80">
+                        <h4 class="text-gray-400 mb-2">Enterprise</h4>
+                        <p class="text-3xl font-bold mb-4">99€<span class="text-sm text-gray-500">/mois</span></p>
+                        <p class="text-xs text-gray-400">Illimité</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 7: Monitoring -->
+            <section>
+                <h2 class="text-indigo-400 mb-6 italic text-sm uppercase tracking-widest">06. Observabilité & Perfs</h2>
+                <h3 class="mb-4">Chiffres <span class="text-indigo-400">Réels</span></h3>
+                
+                <div class="grid grid-cols-2 gap-8">
+                    <div class="fragment space-y-4">
+                        <div class="p-4 bg-gray-900 rounded-lg flex justify-between items-center">
+                            <div>
+                                <p class="text-indigo-400 font-bold">Latence IA</p>
+                                <p class="text-xs text-gray-400">Gemini 2.0 Flash</p>
+                            </div>
+                            <span class="text-2xl font-mono text-white">~1.8s</span>
+                        </div>
+                        <div class="p-4 bg-gray-900 rounded-lg flex justify-between items-center">
+                            <div>
+                                <p class="text-indigo-400 font-bold">Tests Coverage</p>
+                                <p class="text-xs text-gray-400">Unit & Integration</p>
+                            </div>
+                            <span class="text-2xl font-mono text-white">75%</span>
+                        </div>
+                        <div class="p-4 bg-gray-900 rounded-lg flex justify-between items-center">
+                            <div>
+                                <p class="text-indigo-400 font-bold">Coût Infra</p>
+                                <p class="text-xs text-gray-400">VPS 8GB RAM</p>
+                            </div>
+                            <span class="text-2xl font-mono text-white">28€/m</span>
+                        </div>
+                    </div>
+                    <div class="fragment flex items-center justify-center">
+                        <div class="relative w-full h-full min-h-[250px] bg-indigo-950/30 rounded-xl border border-indigo-500/30 flex flex-col items-center justify-center p-6 text-center">
+                            <span class="text-4xl mb-4">�</span>
+                            <p class="text-sm text-gray-400">Insérez ici votre capture d'écran du dashboard Grafana</p>
+                            <p class="text-[10px] text-indigo-300 mt-2">http://localhost:3000</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 8: Conclusion -->
+            <section data-background-gradient="linear-gradient(to top right, #000, #1e1b4b)">
+                <div class="text-center">
+                    <h2 class="gradient-text text-6xl mb-12">Merci !</h2>
+                    <h3 class="mb-8">Des questions ?</h3>
+                    <div class="h-1 w-24 bg-indigo-500 mb-12 mx-auto"></div>
+                    <div class="flex justify-center gap-4">
+                        <span class="tech-badge">React</span>
+                        <span class="tech-badge">Microservices</span>
+                        <span class="tech-badge">Google Gemini</span>
+                        <span class="tech-badge">Docker</span>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            plugins: [ RevealHighlight ],
+            transition: 'slide', // none/fade/slide/convex/concave/zoom
+            backgroundTransition: 'fade'
+        });
+    </script>
+</body>
+</html>
